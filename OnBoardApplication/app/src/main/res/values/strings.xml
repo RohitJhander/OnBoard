@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">OnBoard Application</string>
+    <string name="unknown_device">Unknown Device</string>
+
+</resources>
