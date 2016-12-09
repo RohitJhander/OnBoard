@@ -5,18 +5,25 @@ import android.app.Activity;
 import android.app.ProgressDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothGatt;
+import android.bluetooth.BluetoothGattCallback;
+import android.bluetooth.BluetoothGattCharacteristic;
+import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
+import android.bluetooth.BluetoothProfile;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -27,8 +34,9 @@ public class HomeScreen extends AppCompatActivity {
     private Handler mHandler;
     private int REQUEST_ENABLE_BT = 1;
     private boolean mScanning = false;
-    private long SCAN_PERIOD = 60000;
+    private long SCAN_PERIOD = 20000;
     private ArrayList<BluetoothDevice> BT_devices;
+    private BluetoothGatt mGatt;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -42,7 +50,7 @@ public class HomeScreen extends AppCompatActivity {
             finish();
         }
 
-        BT_devices =  new ArrayList<BluetoothDevice>();
+        BT_devices = new ArrayList<BluetoothDevice>();
         final BluetoothManager bluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
         mBluetoothAdapter = bluetoothManager.getAdapter();
         mHandler = new Handler();
@@ -62,7 +70,7 @@ public class HomeScreen extends AppCompatActivity {
                     dialog.setIndeterminate(true);
                     dialog.setCancelable(false);
                     dialog.show();
-                    long delayInMillis = 60000;
+                    long delayInMillis = 20000;
                     Timer timer = new Timer();
                     timer.schedule(new TimerTask() {
                         @Override
@@ -74,19 +82,22 @@ public class HomeScreen extends AppCompatActivity {
                     handler.postDelayed(new Runnable() {
                         @Override
                         public void run() {
-                             if(BT_devices.isEmpty()){
-                                 for (int i=0; i < 10; i++)
-                                 {
-                                     Toast.makeText(HomeScreen.this,"No Device Found", Toast.LENGTH_LONG).show();
-                                 }
-                            }else{
-                                 for (int i=0; i < 10; i++)
-                                 {
-                                     Toast.makeText(HomeScreen.this,"Device Found: "+ BT_devices.get(0).getName(), Toast.LENGTH_LONG).show();
-                                 }
+                            if (BT_devices.isEmpty()) {
+                                for (int i = 0; i < 5; i++) {
+                                    Toast.makeText(HomeScreen.this, "No Device Found", Toast.LENGTH_LONG).show();
+                                }
+                            } else {
+                                for (int i = 0; i < 5; i++) {
+                                    Toast.makeText(HomeScreen.this, "Device Found: " + BT_devices.get(0).getName(), Toast.LENGTH_LONG).show();
+                                }
+                                connectToDevice(BT_devices.get(0));
+                                for (int i = 0; i < 15; i++) {
+                                    Toast.makeText(HomeScreen.this, "Connected to " + BT_devices.get(0).getName(), Toast.LENGTH_LONG).show();
+                                }
+
                             }
                         }
-                    }, 60000);
+                    }, 20000);
                 }
             }
         });
@@ -145,4 +156,78 @@ public class HomeScreen extends AppCompatActivity {
                     });
                 }
             };
+
+    public void connectToDevice(BluetoothDevice device) {
+        if (mGatt == null) {
+            mGatt = device.connectGatt(this, false, gattCallback);
+            // scanLeDevice(false); // will stop after first device detection
+        }
+    }
+
+    public void disconnectDevice(){
+       if(mGatt==null){
+           return;
+       }
+        mGatt.disconnect();
+        mGatt.close();
+    }
+
+    private final BluetoothGattCallback gattCallback = new BluetoothGattCallback() {
+        @Override
+        public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
+            switch (newState) {
+                case BluetoothProfile.STATE_CONNECTED:
+                    Log.i("gattCallback", "STATE_CONNECTED");
+                    gatt.discoverServices();
+                    break;
+                case BluetoothProfile.STATE_DISCONNECTED:
+                    Log.e("gattCallback", "STATE_DISCONNECTED");
+                    break;
+                default:
+                    Log.e("gattCallback", "STATE_OTHER");
+            }
+        }
+
+        @Override
+        public void onServicesDiscovered(BluetoothGatt gatt, int status) {
+            List<BluetoothGattService> services = gatt.getServices();
+            Log.i("onServicesDiscovered", services.toString());
+            gatt.readCharacteristic(services.get(1).getCharacteristics().get(0));
+            System.out.print("Number of services: "+services.size()+"\n");
+            System.out.print("Service: "+ services.get(2).getUuid() + " char: "+services.get(2).getCharacteristics().get(0).getUuid()+"\n");
+            writeCharacteristic("Rohit");
+        }
+
+        @Override
+        public void onCharacteristicRead(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
+            Log.i("onCharacteristicRead", characteristic.toString());
+            //gatt.disconnect();
+        }
+    };
+
+    public boolean writeCharacteristic(String str) {
+
+        //check mBluetoothGatt is available
+        if (mGatt == null) {
+            return false;
+        }
+
+        BluetoothGattService Service = mGatt.getService(mGatt.getServices().get(2).getUuid());
+
+        if (Service == null) {
+            return false;
+        }
+
+        BluetoothGattCharacteristic charac = Service.getCharacteristic(mGatt.getServices().get(2).getCharacteristics().get(0).getUuid());
+        if (charac == null) {
+            return false;
+        }
+
+        byte[] value = new byte[20];
+        value = str.getBytes();
+        charac.setValue(value);
+        boolean status = mGatt.writeCharacteristic(charac);
+        return status;
+    }
+
 }
