@@ -16,21 +16,15 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Handler;
 import android.speech.tts.TextToSpeech;
-import android.support.v4.view.MotionEventCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.GestureDetector;
 import android.view.MotionEvent;
-import android.view.View;
-import android.widget.Button;
 import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Timer;
-import java.util.TimerTask;
 
 @TargetApi(23)
 public class HomeScreen extends AppCompatActivity implements SimpleGestureFilter.SimpleGestureListener {
@@ -39,11 +33,12 @@ public class HomeScreen extends AppCompatActivity implements SimpleGestureFilter
     private Handler mHandler;
     private int REQUEST_ENABLE_BT = 1;
     private boolean mScanning = false;
-    private long SCAN_PERIOD = 10000;
+    private long SCAN_PERIOD = 5000;
     private ArrayList<BluetoothDevice> BT_devices;
     private BluetoothGatt mGatt;
     private TextToSpeech tts;
     private SimpleGestureFilter detector;
+    private int listIndex = -1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -74,7 +69,7 @@ public class HomeScreen extends AppCompatActivity implements SimpleGestureFilter
         final BluetoothManager bluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
         mBluetoothAdapter = bluetoothManager.getAdapter();
         mHandler = new Handler();
-
+        tts.speak("Application ready to use", TextToSpeech.QUEUE_FLUSH, null);
     }
 
     @Override
@@ -124,7 +119,14 @@ public class HomeScreen extends AppCompatActivity implements SimpleGestureFilter
                     mHandler.post(new Runnable() {
                         @Override
                         public void run() {
-                            BT_devices.add(device);
+                            boolean push = true;
+                            for(int i=0;i<BT_devices.size();i++){
+                                if(BT_devices.get(i).getName().equals(device.getName())){
+                                    push = false;
+                                    break;
+                                }
+                            }
+                            if(push) BT_devices.add(device);
                         }
                     });
                 }
@@ -216,40 +218,77 @@ public class HomeScreen extends AppCompatActivity implements SimpleGestureFilter
         switch (direction) {
             case SimpleGestureFilter.SWIPE_RIGHT :
                 // NEXT BUS
-                Toast.makeText(HomeScreen.this, "Swipe Right", Toast.LENGTH_LONG).show();
+                if(BT_devices.size()==0){
+                    Toast.makeText(HomeScreen.this, "no bus found", Toast.LENGTH_SHORT).show();
+                    tts.speak("no bus found", TextToSpeech.QUEUE_FLUSH, null);
+                } else{
+                    listIndex = (listIndex+1)%BT_devices.size();
+                    String bus_name = BT_devices.get(listIndex).getName();
+                    Toast.makeText(HomeScreen.this, bus_name, Toast.LENGTH_SHORT).show();
+                    tts.speak(bus_name, TextToSpeech.QUEUE_FLUSH, null);
+                }
                 break;
+
             case SimpleGestureFilter.SWIPE_LEFT :
+
                 // PREV BUS
-                Toast.makeText(HomeScreen.this, "Swipe Left", Toast.LENGTH_LONG).show();
+                if(BT_devices.size()==0){
+                    Toast.makeText(HomeScreen.this, "no bus found", Toast.LENGTH_SHORT).show();
+                    tts.speak("no bus found", TextToSpeech.QUEUE_FLUSH, null);
+                } else{
+                    if(listIndex==0){
+                        listIndex = BT_devices.size()-1;
+                    }else{
+                        listIndex -= 1;
+                    }
+                    String bus_name = BT_devices.get(listIndex).getName();
+                    Toast.makeText(HomeScreen.this, bus_name, Toast.LENGTH_SHORT).show();
+                    tts.speak(bus_name, TextToSpeech.QUEUE_FLUSH, null);
+                }
                 break;
+
             case SimpleGestureFilter.SWIPE_DOWN :
+
                 // SELECT BUS
-                Toast.makeText(HomeScreen.this, "Swipe Down", Toast.LENGTH_LONG).show();
                 {
                     if(BT_devices.size()==0){
-                        Toast.makeText(HomeScreen.this, "no bus to connect", Toast.LENGTH_LONG).show();
+                        Toast.makeText(HomeScreen.this, "no bus to connect", Toast.LENGTH_SHORT).show();
                         tts.speak("no bus to connect", TextToSpeech.QUEUE_FLUSH, null);
-                    }else{
-                        Toast.makeText(HomeScreen.this, "connecting to  "+ BT_devices.get(0).getName(), Toast.LENGTH_LONG).show();
-                        tts.speak("connecting to  "+ BT_devices.get(0).getName(), TextToSpeech.QUEUE_FLUSH, null);
-                        connectToDevice(BT_devices.get(0));
-                        while(tts.isSpeaking());
-                        Toast.makeText(HomeScreen.this, "connection successfull ", Toast.LENGTH_LONG).show();
-                        tts.speak("connection successfull ", TextToSpeech.QUEUE_FLUSH, null);
                     }
+
+                    if(listIndex==-1){
+                        Toast.makeText(HomeScreen.this, "no bus selected", Toast.LENGTH_SHORT).show();
+                        tts.speak("no bus selected", TextToSpeech.QUEUE_FLUSH, null);
+                    }else{
+                        Toast.makeText(HomeScreen.this, "connecting to  "+ BT_devices.get(listIndex).getName(), Toast.LENGTH_SHORT).show();
+                        tts.speak("connecting to  "+ BT_devices.get(listIndex).getName(), TextToSpeech.QUEUE_FLUSH, null);
+                        connectToDevice(BT_devices.get(listIndex));
+                        while(tts.isSpeaking());
+                        Toast.makeText(HomeScreen.this, "connection successfull ", Toast.LENGTH_SHORT).show();
+                        tts.speak("connection successfull ", TextToSpeech.QUEUE_FLUSH, null);
+                        /*disconnectDevice();
+                        while (tts.isSpeaking());
+                        Toast.makeText(HomeScreen.this, "diconneceted successfully ", Toast.LENGTH_SHORT).show();
+                        tts.speak("disconnected successfully ", TextToSpeech.QUEUE_FLUSH, null);
+                    */}
                     break;
                 }
+
             case SimpleGestureFilter.SWIPE_UP :
+
                 // SCAN BUS
-                Toast.makeText(HomeScreen.this, "Swipe Up", Toast.LENGTH_LONG).show();
                 {
                     if (mBluetoothAdapter == null || !mBluetoothAdapter.isEnabled()) {
                         Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
                         startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
                     }
 
-                    Toast.makeText(HomeScreen.this, "please wait searching buses", Toast.LENGTH_LONG).show();
+                    Toast.makeText(HomeScreen.this, "please wait searching buses", Toast.LENGTH_SHORT).show();
+                    while (tts.isSpeaking());
                     tts.speak("please wait searching buses", TextToSpeech.QUEUE_FLUSH, null);
+
+                    BT_devices = new ArrayList<BluetoothDevice>();
+                    listIndex = -1;
                     scanLeDevice(true);
 
                     Handler handler = new Handler();
@@ -257,17 +296,16 @@ public class HomeScreen extends AppCompatActivity implements SimpleGestureFilter
                         @Override
                         public void run() {
                             if (BT_devices.isEmpty()) {
-                                Toast.makeText(HomeScreen.this, "no bus found", Toast.LENGTH_LONG).show();
+                                Toast.makeText(HomeScreen.this, "no bus found", Toast.LENGTH_SHORT).show();
                                 tts.speak("no bus found", TextToSpeech.QUEUE_FLUSH, null);
                             } else {
-                                String toSpeak = BT_devices.get(0).getName();
-                                Toast.makeText(HomeScreen.this, toSpeak + " found", Toast.LENGTH_LONG).show();
-                                tts.speak(toSpeak + " found", TextToSpeech.QUEUE_FLUSH, null);
+                                String toSpeak = Integer.toString(BT_devices.size());
+                                Toast.makeText(HomeScreen.this, toSpeak + " bus found", Toast.LENGTH_SHORT).show();
+                                tts.speak(toSpeak + " bus found", TextToSpeech.QUEUE_FLUSH, null);
                                 while(tts.isSpeaking());
-                                tts.speak("swipe down to connect to any bus", TextToSpeech.QUEUE_FLUSH, null);
                             }
                         }
-                    }, 10000);
+                    }, SCAN_PERIOD);
                     break;
                 }
         }
