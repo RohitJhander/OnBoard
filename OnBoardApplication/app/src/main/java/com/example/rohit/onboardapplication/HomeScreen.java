@@ -2,7 +2,6 @@ package com.example.rohit.onboardapplication;
 
 import android.annotation.TargetApi;
 import android.app.Activity;
-import android.app.ProgressDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
@@ -19,7 +18,6 @@ import android.speech.tts.TextToSpeech;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.MotionEvent;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -27,7 +25,10 @@ import android.widget.Button;
 import android.widget.ListView;
 import android.widget.Toast;
 
+import com.example.rohit.onboardapplication.Constants.*;
+
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 
@@ -38,14 +39,13 @@ public class HomeScreen extends AppCompatActivity {
     private Handler mHandler;
     private int REQUEST_ENABLE_BT = 1;
     private boolean mScanning = false;
-    private long SCAN_PERIOD = 5000;
     private BluetoothGatt mGatt;
     private TextToSpeech tts;
-
     private ListView listView;
     private Button scanButton;
-    private ArrayAdapter<BluetoothDevice> adapter;
-    private ArrayList<BluetoothDevice> BT_devices;
+    private ArrayAdapter<String> adapter;
+    private ArrayList<String> BT_devices;
+    private HashMap<String,BluetoothDevice> map;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -69,21 +69,31 @@ public class HomeScreen extends AppCompatActivity {
             finish();
         }
 
-        BT_devices = new ArrayList<BluetoothDevice>();
+        BT_devices = new ArrayList<String>();
+        map = new HashMap<String, BluetoothDevice>();
         final BluetoothManager bluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
         mBluetoothAdapter = bluetoothManager.getAdapter();
         mHandler = new Handler();
 
         scanButton = (Button) findViewById(R.id.button);
         listView = (ListView) findViewById(R.id.list);
-        adapter = new ArrayAdapter<BluetoothDevice>(this, android.R.layout.simple_list_item_1, BT_devices);
+        adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, BT_devices);
         listView.setAdapter(adapter);
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener(){
             @Override
             public void onItemClick(AdapterView<?> parent, View view,
                                     int position, long id) {
-                BluetoothDevice  device    = (BluetoothDevice) listView.getItemAtPosition(position);
+                BluetoothDevice  device   = (BluetoothDevice) map.get(listView.getItemAtPosition(position));
                 connectToDevice(device);
+                Toast.makeText(HomeScreen.this, device.getName()+" selected", Toast.LENGTH_LONG).show();
+                final Handler handler = new Handler();
+                handler.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        disconnectDevice();
+                    }
+                }, Constants.connectionTime);
+
             }
         });
 
@@ -95,7 +105,22 @@ public class HomeScreen extends AppCompatActivity {
                     startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
                 }
                 BT_devices.clear();
+                map.clear();
+                adapter.clear();
+                adapter.notifyDataSetChanged();
                 scanLeDevice(true);
+                final Handler handler = new Handler();
+                handler.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        if(BT_devices.size()==0){
+                            Toast.makeText(HomeScreen.this, Constants.noBusFoundMsg, Toast.LENGTH_LONG).show();
+                        }else{
+                            Toast.makeText(HomeScreen.this, BT_devices.size() +" devices found", Toast.LENGTH_LONG).show();
+                        }
+                    }
+                }, Constants.SCAN_PERIOD);
+
             }
         });
 
@@ -135,7 +160,7 @@ public class HomeScreen extends AppCompatActivity {
                     mBluetoothAdapter.stopLeScan(mLeScanCallback);
                     mScanning = false;
                 }
-            }, SCAN_PERIOD);
+            }, Constants.SCAN_PERIOD);
             mScanning = true;
             mBluetoothAdapter.startLeScan(mLeScanCallback);
         }
@@ -151,15 +176,16 @@ public class HomeScreen extends AppCompatActivity {
                         public void run() {
                             boolean push = true;
                             for(int i=0;i<BT_devices.size();i++){
-                                if(BT_devices.get(i).getName()!=null){
-                                    if (BT_devices.get(i).getName().equals(device.getName())) {
+                                if(device.getName()!=null){
+                                    if (BT_devices.get(i).equals(device.getName())) {
                                         push = false;
                                         break;
                                     }
                                 }
                             }
                             if(push){
-                                BT_devices.add(device);
+                                BT_devices.add(device.getName());
+                                map.put(device.getName(),device);
                                 adapter.notifyDataSetChanged();
                             }
                         }
@@ -170,7 +196,7 @@ public class HomeScreen extends AppCompatActivity {
     public void connectToDevice(BluetoothDevice device) {
         if (mGatt == null) {
             mGatt = device.connectGatt(this, false, gattCallback);
-            // scanLeDevice(false); // will stop after first device detection
+           // scanLeDevice(false);
         }
     }
 
@@ -203,9 +229,7 @@ public class HomeScreen extends AppCompatActivity {
             List<BluetoothGattService> services = gatt.getServices();
             Log.i("onServicesDiscovered", services.toString());
             gatt.readCharacteristic(services.get(1).getCharacteristics().get(0));
-            System.out.print("Number of services: "+services.size()+"\n");
-            System.out.print("Service: "+ services.get(2).getUuid() + " char: "+services.get(2).getCharacteristics().get(0).getUuid()+"\n");
-            writeCharacteristic("Rohit");
+            writeCharacteristic(Constants.sendData);
         }
 
         @Override
@@ -222,13 +246,13 @@ public class HomeScreen extends AppCompatActivity {
             return false;
         }
 
-        BluetoothGattService Service = mGatt.getService(mGatt.getServices().get(2).getUuid());
+        BluetoothGattService Service = mGatt.getService(mGatt.getServices().get(Constants.writeToServiceIndex).getUuid());
 
         if (Service == null) {
             return false;
         }
 
-        BluetoothGattCharacteristic charac = Service.getCharacteristic(mGatt.getServices().get(2).getCharacteristics().get(0).getUuid());
+        BluetoothGattCharacteristic charac = Service.getCharacteristic(mGatt.getServices().get(Constants.writeToServiceIndex).getCharacteristics().get(Constants.writeToCharacterisiticIndex).getUuid());
         if (charac == null) {
             return false;
         }
