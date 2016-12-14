@@ -1,6 +1,9 @@
 package com.example.rohit.driverapp;
 
+import android.Manifest;
 import android.content.DialogInterface;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -71,6 +74,12 @@ public class HomeScreen extends AppCompatActivity {
             finish();
         }
 
+        // Prompt for permissions
+        if(ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            Log.w("BleActivity", "Location access not granted!");
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, 42);
+        }
+
         BT_devices = new ArrayList<String>();
         map = new HashMap<String, BluetoothDevice>();
         final BluetoothManager bluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
@@ -92,7 +101,7 @@ public class HomeScreen extends AppCompatActivity {
                 alert.setMessage("Enter new name");
                 alert.setTitle("Rename Device");
                 alert.setView(edittext);
-                alert.setPositiveButton("Yes Option", new DialogInterface.OnClickListener() {
+                alert.setPositiveButton("Done", new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int whichButton) {
                         String busName = edittext.getText().toString();
                         sendData = "AT+NAME"+busName;

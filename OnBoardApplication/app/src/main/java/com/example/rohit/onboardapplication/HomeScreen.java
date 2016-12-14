@@ -20,6 +20,8 @@ import android.net.Uri;
 import android.os.Handler;
 import android.provider.Settings;
 import android.speech.tts.TextToSpeech;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -69,11 +71,9 @@ public class HomeScreen extends AppCompatActivity {
             startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
         }
 
-        LocationManager service = (LocationManager) getSystemService(LOCATION_SERVICE);
-        boolean enabled = service.isProviderEnabled(LocationManager.GPS_PROVIDER);
-        if (!enabled) {
-            Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
-            startActivity(intent);
+        if(ContextCompat.checkSelfPermission(HomeScreen.this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            Log.w("BleActivity", "Location access not granted!");
+            ActivityCompat.requestPermissions(HomeScreen.this, new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, 42);
         }
 
         BT_devices = new ArrayList<String>();
