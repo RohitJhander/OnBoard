@@ -1,6 +1,9 @@
-package com.example.rohit.onboardapplication;
+package com.example.rohit.driverapp;
 
-import android.Manifest;
+import android.content.DialogInterface;
+import android.support.v7.app.AlertDialog;
+import android.support.v7.app.AppCompatActivity;
+import android.os.Bundle;
 import android.annotation.TargetApi;
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
@@ -12,26 +15,18 @@ import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothProfile;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.location.LocationManager;
-import android.net.Uri;
 import android.os.Handler;
-import android.provider.Settings;
 import android.speech.tts.TextToSpeech;
-import android.support.v7.app.AlertDialog;
-import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.Toast;
-
-import com.example.rohit.onboardapplication.Constants.*;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -46,11 +41,13 @@ public class HomeScreen extends AppCompatActivity {
     private int REQUEST_ENABLE_BT = 1;
     private boolean mScanning = false;
     private BluetoothGatt mGatt;
+    private TextToSpeech tts;
     private ListView listView;
     private Button scanButton;
     private ArrayAdapter<String> adapter;
     private ArrayList<String> BT_devices;
     private HashMap<String,BluetoothDevice> map;
+    private String sendData = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -58,22 +55,20 @@ public class HomeScreen extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home_screen);
 
+        tts = new TextToSpeech(getApplicationContext(), new TextToSpeech.OnInitListener() {
+            @Override
+            public void onInit(int status) {
+                if (status != TextToSpeech.ERROR) {
+                    tts.setLanguage(Locale.UK);
+                }
+            }
+        });
+
+
         if (!getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)) {
             Toast.makeText(this, "BLE Not Supported",
                     Toast.LENGTH_SHORT).show();
             finish();
-        }
-
-        if (mBluetoothAdapter == null || !mBluetoothAdapter.isEnabled()) {
-            Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-            startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
-        }
-
-        LocationManager service = (LocationManager) getSystemService(LOCATION_SERVICE);
-        boolean enabled = service.isProviderEnabled(LocationManager.GPS_PROVIDER);
-        if (!enabled) {
-            Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
-            startActivity(intent);
         }
 
         BT_devices = new ArrayList<String>();
@@ -82,30 +77,46 @@ public class HomeScreen extends AppCompatActivity {
         mBluetoothAdapter = bluetoothManager.getAdapter();
         mHandler = new Handler();
 
-        scanButton = (Button) findViewById(R.id.button);
+        scanButton = (Button) findViewById(R.id.scan);
         listView = (ListView) findViewById(R.id.list);
+
         adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, BT_devices);
         listView.setAdapter(adapter);
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener(){
             @Override
             public void onItemClick(AdapterView<?> parent, View view,
                                     int position, long id) {
-                BluetoothDevice  device   = (BluetoothDevice) map.get(listView.getItemAtPosition(position));
-                connectToDevice(device);
-                Toast.makeText(HomeScreen.this, device.getName()+" selected", Toast.LENGTH_LONG).show();
-                final Handler handler = new Handler();
-                handler.postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        disconnectDevice();
+                final BluetoothDevice  device   = (BluetoothDevice) map.get(listView.getItemAtPosition(position));
+                AlertDialog.Builder alert = new AlertDialog.Builder(HomeScreen.this);
+                final EditText edittext = new EditText(HomeScreen.this);
+                alert.setMessage("Enter new name");
+                alert.setTitle("Rename Device");
+                alert.setView(edittext);
+                alert.setPositiveButton("Yes Option", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int whichButton) {
+                        String busName = edittext.getText().toString();
+                        sendData = "AT+NAME"+busName;
+                        connectToDevice(device);
+                        final Handler handler = new Handler();
+                        handler.postDelayed(new Runnable() {
+                            @Override
+                            public void run() {
+                                disconnectDevice();
+                            }
+                        }, Constants.connectionTime);
                     }
-                }, Constants.connectionTime);
-
+                });
+                alert.show();
             }
         });
 
         scanButton.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
+
+                if (mBluetoothAdapter == null || !mBluetoothAdapter.isEnabled()) {
+                    Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+                    startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
+                }
 
                 BT_devices.clear();
                 map.clear();
@@ -199,14 +210,14 @@ public class HomeScreen extends AppCompatActivity {
     public void connectToDevice(BluetoothDevice device) {
         if (mGatt == null) {
             mGatt = device.connectGatt(this, false, gattCallback);
-           // scanLeDevice(false);
+            // scanLeDevice(false);
         }
     }
 
     public void disconnectDevice(){
-       if(mGatt==null){
-           return;
-       }
+        if(mGatt==null){
+            return;
+        }
         mGatt.disconnect();
         mGatt.close();
     }
@@ -232,7 +243,7 @@ public class HomeScreen extends AppCompatActivity {
             List<BluetoothGattService> services = gatt.getServices();
             Log.i("onServicesDiscovered", services.toString());
             gatt.readCharacteristic(services.get(1).getCharacteristics().get(0));
-            writeCharacteristic(Constants.sendData);
+            writeCharacteristic(sendData);
         }
 
         @Override
@@ -242,7 +253,7 @@ public class HomeScreen extends AppCompatActivity {
         }
     };
 
-        public boolean writeCharacteristic(String str) {
+    public boolean writeCharacteristic(String str) {
 
         //check mBluetoothGatt is available
         if (mGatt == null) {
@@ -266,5 +277,4 @@ public class HomeScreen extends AppCompatActivity {
         boolean status = mGatt.writeCharacteristic(charac);
         return status;
     }
-
 }
