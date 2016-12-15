@@ -12,17 +12,11 @@ import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothProfile;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.location.LocationManager;
-import android.net.Uri;
 import android.os.Handler;
-import android.provider.Settings;
-import android.speech.tts.TextToSpeech;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
-import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -33,15 +27,13 @@ import android.widget.Button;
 import android.widget.ListView;
 import android.widget.Toast;
 
-import com.example.rohit.onboardapplication.Constants.*;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 
 @TargetApi(23)
 public class HomeScreen extends AppCompatActivity {
+
 
     private BluetoothAdapter mBluetoothAdapter;
     private Handler mHandler;
@@ -50,6 +42,7 @@ public class HomeScreen extends AppCompatActivity {
     private BluetoothGatt mGatt;
     private ListView listView;
     private Button scanButton;
+    private Button restrictedButton;
     private ArrayAdapter<String> adapter;
     private ArrayList<String> BT_devices;
     private HashMap<String,BluetoothDevice> map;
@@ -82,7 +75,7 @@ public class HomeScreen extends AppCompatActivity {
         mBluetoothAdapter = bluetoothManager.getAdapter();
         mHandler = new Handler();
 
-        scanButton = (Button) findViewById(R.id.button);
+        scanButton = (Button) findViewById(R.id.scan);
         listView = (ListView) findViewById(R.id.list);
         adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, BT_devices);
         listView.setAdapter(adapter);
@@ -127,6 +120,13 @@ public class HomeScreen extends AppCompatActivity {
             }
         });
 
+        restrictedButton = (Button) findViewById(R.id.restricted);
+        restrictedButton.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                Intent intent = new Intent(HomeScreen.this,RestrictedActivity.class);
+                startActivity(intent);
+            }
+        });
     }
 
 
@@ -187,9 +187,11 @@ public class HomeScreen extends AppCompatActivity {
                                 }
                             }
                             if(push){
-                                BT_devices.add(device.getName());
-                                map.put(device.getName(),device);
-                                adapter.notifyDataSetChanged();
+                                if(device!=null && device.getName()!=null){
+                                    BT_devices.add(device.getName());
+                                    map.put(device.getName(),device);
+                                    adapter.notifyDataSetChanged();
+                                }
                             }
                         }
                     });
@@ -199,14 +201,14 @@ public class HomeScreen extends AppCompatActivity {
     public void connectToDevice(BluetoothDevice device) {
         if (mGatt == null) {
             mGatt = device.connectGatt(this, false, gattCallback);
-           // scanLeDevice(false);
+            // scanLeDevice(false);
         }
     }
 
     public void disconnectDevice(){
-       if(mGatt==null){
-           return;
-       }
+        if(mGatt==null){
+            return;
+        }
         mGatt.disconnect();
         mGatt.close();
     }
@@ -242,7 +244,7 @@ public class HomeScreen extends AppCompatActivity {
         }
     };
 
-        public boolean writeCharacteristic(String str) {
+    public boolean writeCharacteristic(String str) {
 
         //check mBluetoothGatt is available
         if (mGatt == null) {
@@ -266,5 +268,4 @@ public class HomeScreen extends AppCompatActivity {
         boolean status = mGatt.writeCharacteristic(charac);
         return status;
     }
-
 }

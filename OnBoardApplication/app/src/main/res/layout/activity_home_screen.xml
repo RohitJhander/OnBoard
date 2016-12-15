@@ -11,19 +11,29 @@
     tools:context="com.example.rohit.onboardapplication.HomeScreen">
 
     <Button
-        android:text="Find Bus"
+        android:text="Scan"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:id="@+id/button"
-        android:layout_alignParentStart="true"
-        android:layout_alignParentEnd="true"
-        android:elevation="0dp" />
+        android:layout_marginStart="47dp"
+        android:layout_marginTop="34dp"
+        android:id="@+id/scan"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentStart="true" />
+
+    <Button
+        android:text="AutoMode"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignBottom="@+id/scan"
+        android:layout_toEndOf="@+id/scan"
+        android:layout_marginStart="43dp"
+        android:id="@+id/restricted" />
 
     <ListView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_marginTop="28dp"
-        android:layout_below="@+id/button"
-        android:layout_centerHorizontal="true"
+        android:layout_below="@+id/scan"
+        android:layout_marginTop="37dp"
+        android:layout_alignParentStart="true"
         android:id="@+id/list" />
 </RelativeLayout>
