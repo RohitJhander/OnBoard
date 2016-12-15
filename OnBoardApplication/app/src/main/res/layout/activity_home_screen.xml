@@ -12,28 +12,48 @@
 
     <Button
         android:text="Scan"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="47dp"
-        android:layout_marginTop="34dp"
+        android:layout_width="130dp"
+        android:layout_marginStart="26dp"
+        android:layout_marginTop="33dp"
         android:id="@+id/scan"
+        android:layout_height="60dp"
         android:layout_alignParentTop="true"
-        android:layout_alignParentStart="true" />
+        android:layout_alignParentStart="true"
+        android:textColor="#FFFFFF"
+        android:shadowColor="#A89C96"
+        android:shadowRadius="10"
+        android:background="#3F51B5"
+        />
 
     <Button
-        android:text="AutoMode"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:text="Auto Mode"
+        android:layout_width="130dp"
+        android:layout_height="60dp"
+        android:layout_marginStart="32dp"
+        android:id="@+id/restricted"
         android:layout_alignBottom="@+id/scan"
         android:layout_toEndOf="@+id/scan"
-        android:layout_marginStart="43dp"
-        android:id="@+id/restricted" />
+        android:layout_alignTop="@+id/scan"
+        android:textColor="#FFFFFF"
+        android:shadowColor="#A89C96"
+        android:shadowRadius="10"
+        android:background="#3F51B5"/>
+
+    <TextView
+        android:text="Scan Results"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/scan"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="39dp"
+        android:textSize="22dp"
+        android:textColor="#0C0C4F"
+        android:id="@+id/textView" />
 
     <ListView
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_below="@+id/scan"
-        android:layout_marginTop="37dp"
-        android:layout_alignParentStart="true"
+        android:layout_width="250dp"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        android:layout_height="300dp"
         android:id="@+id/list" />
 </RelativeLayout>

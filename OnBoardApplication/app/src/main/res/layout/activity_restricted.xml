@@ -26,7 +26,8 @@
         android:textSize="25dp"
         android:id="@+id/text"
         android:layout_below="@+id/add"
-        android:layout_centerHorizontal="true" />
+        android:layout_centerHorizontal="true"
+        android:textColor="#0C0C4F"/>
 
     <Button
         android:text="Add Bus"
@@ -35,7 +36,11 @@
         android:layout_marginTop="51dp"
         android:id="@+id/add"
         android:layout_alignParentTop="true"
-        android:layout_toStartOf="@+id/text" />
+        android:layout_toStartOf="@+id/text"
+        android:textColor="#FFFFFF"
+        android:shadowColor="#A89C96"
+        android:shadowRadius="10"
+        android:background="#3F51B5"/>
 
     <Button
         android:text="Clear List"
@@ -44,5 +49,9 @@
         android:id="@+id/clear"
         android:layout_alignBaseline="@+id/add"
         android:layout_alignBottom="@+id/add"
-        android:layout_toEndOf="@+id/text" />
+        android:layout_toEndOf="@+id/text"
+        android:textColor="#FFFFFF"
+        android:shadowColor="#A89C96"
+        android:shadowRadius="10"
+        android:background="#3F51B5"/>
 </RelativeLayout>

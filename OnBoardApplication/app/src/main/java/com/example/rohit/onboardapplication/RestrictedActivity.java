@@ -13,8 +13,8 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Color;
 import android.os.Handler;
-import android.preference.PreferenceManager;
 import android.speech.tts.TextToSpeech;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
@@ -25,6 +25,7 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.RelativeLayout;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -174,7 +175,6 @@ public class RestrictedActivity extends AppCompatActivity {
                     public void run() {
                         if(isBusFound==true){
                             connectToDevice(busFound);
-                            //writeCharacteristic("Rohit");
                             tts.speak(busFound.getName(),TextToSpeech.QUEUE_FLUSH, null);
                             while (tts.isSpeaking());
                             Handler connectionWaitHandler = new Handler();
@@ -199,8 +199,8 @@ public class RestrictedActivity extends AppCompatActivity {
     }
 
     void stopRepeatTask(){
-       // scanLeDevice(false);
-        //taskHandler.removeCallbacks(busScanner);
+        scanLeDevice(false);
+        taskHandler.removeCallbacks(busScanner);
     }
 
     @Override
@@ -209,19 +209,19 @@ public class RestrictedActivity extends AppCompatActivity {
         if (mBluetoothAdapter != null && mBluetoothAdapter.isEnabled()) {
             scanLeDevice(false);
         }
-        //stopRepeatTask();
+        stopRepeatTask();
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-       // stopRepeatTask();
+        stopRepeatTask();
     }
 
     @Override
     public void onResume() {
         super.onResume();
-       // busScanner.run();
+        busScanner.run();
     }
 
     @Override
