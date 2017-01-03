@@ -276,16 +276,17 @@ public class RestrictedActivity extends AppCompatActivity {
     public void connectToDevice(BluetoothDevice device) {
         if (mGatt == null) {
             mGatt = device.connectGatt(this, false, gattCallback);
-            scanLeDevice(false);
         }
     }
 
     public void disconnectDevice(){
-        if(mGatt==null){
+        if (mBluetoothAdapter == null) {
             return;
         }
-        mGatt.disconnect();
-        mGatt.close();
+        if (mGatt != null) {
+            mGatt.disconnect();
+            mGatt = null;
+        }
     }
 
     private final BluetoothGattCallback gattCallback = new BluetoothGattCallback() {
@@ -320,17 +321,20 @@ public class RestrictedActivity extends AppCompatActivity {
 
     public boolean writeCharacteristic(String str) {
 
+        //check mBluetoothGatt is available
         if (mGatt == null) {
             return false;
         }
 
-        BluetoothGattService Service = mGatt.getService(mGatt.getServices().get(Constants.writeToServiceIndex).getUuid());
+        // System.out.println("############################### SERVICE:  "+ mGatt.getServices().get(mGatt.getServices().size()-1).getUuid());
+        BluetoothGattService Service = mGatt.getService(mGatt.getServices().get(mGatt.getServices().size()-1).getUuid());
 
         if (Service == null) {
             return false;
         }
 
-        BluetoothGattCharacteristic charac = Service.getCharacteristic(mGatt.getServices().get(Constants.writeToServiceIndex).getCharacteristics().get(Constants.writeToCharacterisiticIndex).getUuid());
+        //System.out.println("############################### CHAR:  "+ mGatt.getServices().get(mGatt.getServices().size()-1).getCharacteristics().get(Constants.writeToCharacterisiticIndex).getUuid());
+        BluetoothGattCharacteristic charac = Service.getCharacteristic(mGatt.getServices().get(mGatt.getServices().size()-1).getCharacteristics().get(Constants.writeToCharacterisiticIndex).getUuid());
         if (charac == null) {
             return false;
         }

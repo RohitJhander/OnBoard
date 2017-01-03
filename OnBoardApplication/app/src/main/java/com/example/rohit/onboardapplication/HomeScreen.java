@@ -38,7 +38,6 @@ public class HomeScreen extends AppCompatActivity {
     private BluetoothAdapter mBluetoothAdapter;
     private Handler mHandler;
     private int REQUEST_ENABLE_BT = 1;
-    private boolean mScanning = false;
     private BluetoothGatt mGatt;
     private ListView listView;
     private Button scanButton;
@@ -83,23 +82,21 @@ public class HomeScreen extends AppCompatActivity {
             @Override
             public void onItemClick(AdapterView<?> parent, View view,
                                     int position, long id) {
-                BluetoothDevice  device   = (BluetoothDevice) map.get(listView.getItemAtPosition(position));
+                final BluetoothDevice  device   = (BluetoothDevice) map.get(listView.getItemAtPosition(position));
                 connectToDevice(device);
-                Toast.makeText(HomeScreen.this, device.getName()+" selected", Toast.LENGTH_LONG).show();
                 final Handler handler = new Handler();
                 handler.postDelayed(new Runnable() {
                     @Override
                     public void run() {
                         disconnectDevice();
+                        Toast.makeText(HomeScreen.this, device.getName()+" selected", Toast.LENGTH_LONG).show();
                     }
                 }, Constants.connectionTime);
-
             }
         });
 
         scanButton.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-
                 BT_devices.clear();
                 map.clear();
                 adapter.clear();
@@ -156,16 +153,16 @@ public class HomeScreen extends AppCompatActivity {
     }
 
     private void scanLeDevice(final boolean enable) {
-        if (enable && !mScanning) {
+        if (enable) {
             mHandler.postDelayed(new Runnable() {
                 @Override
                 public void run() {
                     mBluetoothAdapter.stopLeScan(mLeScanCallback);
-                    mScanning = false;
                 }
             }, Constants.SCAN_PERIOD);
-            mScanning = true;
             mBluetoothAdapter.startLeScan(mLeScanCallback);
+        }else{
+            mBluetoothAdapter.stopLeScan(mLeScanCallback);
         }
     }
 
@@ -201,16 +198,18 @@ public class HomeScreen extends AppCompatActivity {
     public void connectToDevice(BluetoothDevice device) {
         if (mGatt == null) {
             mGatt = device.connectGatt(this, false, gattCallback);
-            // scanLeDevice(false);
         }
     }
 
     public void disconnectDevice(){
-        if(mGatt==null){
-            return;
+        if (mBluetoothAdapter == null) {
+           return;
         }
-        mGatt.disconnect();
-        mGatt.close();
+        if (mGatt != null) {
+            mGatt.disconnect();
+            mGatt = null;
+        }
+
     }
 
     private final BluetoothGattCallback gattCallback = new BluetoothGattCallback() {
@@ -221,9 +220,11 @@ public class HomeScreen extends AppCompatActivity {
                     Log.i("gattCallback", "STATE_CONNECTED");
                     gatt.discoverServices();
                     break;
-                case BluetoothProfile.STATE_DISCONNECTED:
-                    Log.e("gattCallback", "STATE_DISCONNECTED");
+                case BluetoothProfile.STATE_DISCONNECTED:{
+                  //  mGatt.close();
+                    Log.i("gattCallback", "STATE_DISCONNECTED");
                     break;
+                }
                 default:
                     Log.e("gattCallback", "STATE_OTHER");
             }
@@ -251,13 +252,15 @@ public class HomeScreen extends AppCompatActivity {
             return false;
         }
 
-        BluetoothGattService Service = mGatt.getService(mGatt.getServices().get(Constants.writeToServiceIndex).getUuid());
+       // System.out.println("############################### SERVICE:  "+ mGatt.getServices().get(mGatt.getServices().size()-1).getUuid());
+        BluetoothGattService Service = mGatt.getService(mGatt.getServices().get(mGatt.getServices().size()-1).getUuid());
 
         if (Service == null) {
             return false;
         }
 
-        BluetoothGattCharacteristic charac = Service.getCharacteristic(mGatt.getServices().get(Constants.writeToServiceIndex).getCharacteristics().get(Constants.writeToCharacterisiticIndex).getUuid());
+        //System.out.println("############################### CHAR:  "+ mGatt.getServices().get(mGatt.getServices().size()-1).getCharacteristics().get(Constants.writeToCharacterisiticIndex).getUuid());
+        BluetoothGattCharacteristic charac = Service.getCharacteristic(mGatt.getServices().get(mGatt.getServices().size()-1).getCharacteristics().get(Constants.writeToCharacterisiticIndex).getUuid());
         if (charac == null) {
             return false;
         }
