@@ -5,9 +5,8 @@ package com.example.rohit.driverapp;
  */
 
 public class Constants {
-    public static long SCAN_PERIOD = 5000;    // milliseconds
+    public static long SCAN_PERIOD = 3000;    // milliseconds
     public static long connectionTime = 1500; // milliseconds
-    public static int writeToServiceIndex = 2;  // write to service 3
     public static int writeToCharacterisiticIndex = 0; // write to characeristic 1
     public static String noBusFoundMsg = "no bus found";
 }
